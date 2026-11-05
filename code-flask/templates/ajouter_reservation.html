@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter une Réservation{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="page-header">
+        <h2>➕ Nouvelle Réservation</h2>
+        <div class="page-actions">
+            <a href="{{ url_for('liste_reservations') }}" class="bouton bouton-secondaire">
+                ← Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('ajouter_reservation') }}" class="form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="salle_id">Salle <span class="required">*</span></label>
+                <select id="salle_id" name="salle_id" required>
+                    <option value="" disabled selected>-- Sélectionnez une salle --</option>
+                    {% for salle in salles %}
+                    <option value="{{ salle.id }}">
+                        {{ salle.nom }} (Capacité: {{ salle.capacite }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <span class="form-hint">Choisissez la salle que vous souhaitez réserver.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date <span class="required">*</span></label>
+                <input type="date" 
+                       id="date" 
+                       name="date" 
+                       min="{{ today|date('Y-m-d') }}" 
+                       required>
+                <span class="form-hint">Sélectionnez la date de la réservation.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="heure_debut">Heure de début <span class="required">*</span></label>
+                <input type="time" 
+                       id="heure_debut" 
+                       name="heure_debut" 
+                       min="08:00" 
+                       max="19:30" 
+                       step="900" 
+                       required>
+                <span class="form-hint">Heure de début entre 8h00 et 19h30.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="heure_fin">Heure de fin <span class="required">*</span></label>
+                <input type="time" 
+                       id="heure_fin" 
+                       name="heure_fin" 
+                       min="08:30" 
+                       max="20:00" 
+                       step="900" 
+                       required>
+                <span class="form-hint">Heure de fin entre 8h30 et 20h00. Durée max: 4h.</span>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="nom">Nom de la réservation <span class="required">*</span></label>
+                <input type="text" 
+                       id="nom" 
+                       name="nom" 
+                       placeholder="Ex: Réunion d'équipe, Cours de Maths, Conférence" 
+                       required>
+                <span class="form-hint">Donnez un nom explicite à votre réservation.</span>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="participants">Nombre de participants <span class="required">*</span></label>
+                <input type="number" 
+                       id="participants" 
+                       name="participants" 
+                       placeholder="Ex: 20" 
+                       min="1" 
+                       step="1" 
+                       required>
+                <span class="form-hint">Nombre de participants (doit être ≤ à la capacité de la salle).</span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="bouton bouton-primaire">
+                ✅ Réserver
+            </button>
+            <a href="{{ url_for('liste_reservations') }}" class="bouton bouton-annuler">
+                Annuler
+            </a>
+        </div>
+    </form>
+
+    <div class="reservation-info">
+        <h3>ℹ️ Règles de réservation</h3>
+        <ul>
+            <li>Les réservations doivent être entre <strong>8h00 et 20h00</strong>.</li>
+            <li>La durée doit être entre <strong>30 minutes et 4 heures</strong>.</li>
+            <li>Le nombre de participants ne doit pas dépasser la <strong>capacité de la salle</strong>.</li>
+            <li>Deux réservations pour une même salle <strong>ne peuvent pas se chevaucher</strong>.</li>
+            <li>Une réservation qui finit à 12h00 peut être suivie par une autre qui commence à 12h00.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

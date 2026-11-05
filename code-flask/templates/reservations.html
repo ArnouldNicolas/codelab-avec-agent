@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Liste des Réservations{% endblock %}
+
+{% block content %}
+<div class="reservations-container">
+    <div class="page-header">
+        <h2>📅 Gestion des Réservations</h2>
+        <div class="page-actions">
+            <a href="{{ url_for('formulaire_ajouter_reservation') }}" class="bouton bouton-primaire">
+                ➕ Nouvelle Réservation
+            </a>
+        </div>
+    </div>
+
+    {% if reservations %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Salle</th>
+                    <th>Date</th>
+                    <th>Heure</th>
+                    <th>Nom</th>
+                    <th>Participants</th>
+                    <th class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reservation in reservations %}
+                <tr>
+                    <td>{{ reservation.id }}</td>
+                    <td>
+                        <div class="salle-info">
+                            <span class="salle-nom">{{ reservation.salle_nom }}</span>
+                            <span class="salle-capacite">({{ reservation.salle_capacite }})</span>
+                        </div>
+                    </td>
+                    <td>{{ reservation.date }}</td>
+                    <td>{{ reservation.heure_debut }} - {{ reservation.heure_fin }}</td>
+                    <td>{{ reservation.nom }}</td>
+                    <td>{{ reservation.participants }}</td>
+                    <td class="actions-col">
+                        <div class="action-buttons">
+                            <a href="{{ url_for('modifier_reservation', reservation_id=reservation.id) }}" 
+                               class="bouton bouton-small bouton-secondaire" 
+                               title="Modifier">
+                                ✏️
+                            </a>
+                            <form action="{{ url_for('supprimer_reservation', reservation_id=reservation.id) }}" 
+                                  method="POST" 
+                                  onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer la réservation \"{{ reservation.nom }}\" ?');">
+                                <button type="submit" class="bouton bouton-small bouton-danger" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <h3>Aucune réservation disponible</h3>
+        <p>Commencez par ajouter une réservation.</p>
+        <a href="{{ url_for('formulaire_ajouter_reservation') }}" class="bouton bouton-primaire">
+            ➕ Ajouter une Réservation
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+<div class="index-container">
+    <section class="hero">
+        <h2>Bienvenue sur la plateforme de réservation de salles</h2>
+        <p class="hero-description">
+            Gérez facilement les réservations de salles pour votre bâtiment universitaire.
+            Réservez en quelques clics et évitez les conflits !
+        </p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('formulaire_ajouter_reservation') }}" class="bouton bouton-primaire bouton-grand">
+                ➕ Nouvelle Réservation
+            </a>
+            <a href="{{ url_for('liste_salles') }}" class="bouton bouton-secondaire bouton-grand">
+                📋 Voir les Salles
+            </a>
+        </div>
+    </section>
+
+    <section class="stats">
+        <h3>📊 Statistiques</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🏫</div>
+                <div class="stat-value">{{ nb_salles }}</div>
+                <div class="stat-label">Salles disponibles</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value">{{ nb_reservations }}</div>
+                <div class="stat-label">Réservations totales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔥</div>
+                <div class="stat-value">{{ nb_reservations_aujourdhui }}</div>
+                <div class="stat-label">Réservations aujourd'hui</div>
+            </div>
+        </div>
+    </section>
+
+    {% if prochaines_reservations %}
+    <section class="prochaines-reservations">
+        <h3>📆 Prochaines Réservations</h3>
+        <div class="reservations-list">
+            {% for res in prochaines_reservations %}
+            <div class="reservation-card">
+                <div class="reservation-header">
+                    <span class="reservation-date">{{ res.date }}</span>
+                    <span class="reservation-salle">{{ res.salle_nom }}</span>
+                </div>
+                <div class="reservation-body">
+                    <div class="reservation-time">
+                        ⏰ {{ res.heure_debut }} - {{ res.heure_fin }}
+                    </div>
+                    <div class="reservation-nom">
+                        {{ res.nom }}
+                    </div>
+                    <div class="reservation-participants">
+                        👥 {{ res.participants }} participants
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="acrobats">
+        <h3>🤸 Roulades en continu !</h3>
+        <div class="acrobat-track">
+            <div class="acrobat">👨</div>
+            <div class="acrobat">👩</div>
+            <div class="acrobat">👨</div>
+            <div class="acrobat">👩</div>
+            <div class="acrobat">👨</div>
+            <div class="acrobat">👩</div>
+        </div>
+    </section>
+
+    <section class="features">
+        <h3>✨ Fonctionnalités</h3>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🏫</div>
+                <h4>Gestion des Salles</h4>
+                <p>Ajoutez, modifiez ou supprimez des salles avec leur capacité.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h4>Réservations</h4>
+                <p>Réservez des salles en vérifiant automatiquement les conflits et la capacité.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h4>Recherche</h4>
+                <p>Trouvez facilement les salles disponibles pour une date et un horaire.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h4>Rapidité</h4>
+                <p>Interface intuitive et rapide pour une gestion optimale.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

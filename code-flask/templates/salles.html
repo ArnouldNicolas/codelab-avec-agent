@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Liste des Salles{% endblock %}
+
+{% block content %}
+<div class="salles-container">
+    <div class="page-header">
+        <h2>🏫 Gestion des Salles</h2>
+        <div class="page-actions">
+            <a href="{{ url_for('formulaire_ajouter_salle') }}" class="bouton bouton-primaire">
+                ➕ Ajouter une Salle
+            </a>
+        </div>
+    </div>
+
+    {% if salles %}
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Capacité</th>
+                    <th class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for salle in salles %}
+                <tr>
+                    <td>{{ salle.id }}</td>
+                    <td>{{ salle.nom }}</td>
+                    <td>{{ salle.capacite }}</td>
+                    <td class="actions-col">
+                        <div class="action-buttons">
+                            <a href="{{ url_for('modifier_salle', salle_id=salle.id) }}" 
+                               class="bouton bouton-small bouton-secondaire" 
+                               title="Modifier">
+                                ✏️
+                            </a>
+                            <form action="{{ url_for('supprimer_salle', salle_id=salle.id) }}" 
+                                  method="POST" 
+                                  onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer la salle \"{{ salle.nom }}\" et TOUTES ses réservations ? Cette action est irréversible.');">
+                                <button type="submit" class="bouton bouton-small bouton-danger" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🏫</div>
+        <h3>Aucune salle disponible</h3>
+        <p>Commencez par ajouter une salle pour pouvoir faire des réservations.</p>
+        <a href="{{ url_for('formulaire_ajouter_salle') }}" class="bouton bouton-primaire">
+            ➕ Ajouter une Salle
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
