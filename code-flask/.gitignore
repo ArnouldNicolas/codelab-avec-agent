@@ -1,0 +1,36 @@
+# Base de données SQLite
+data.db
+data.db-shm
+data.db-wal
+
+# Fichiers temporaires Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.pytest_cache/
+.coverage
+
+# Environnement virtuel
+venv/
+env/
+.env/
+
+# Fichiers IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Fichiers de dépendances
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# Fichiers de log
+*.log
+
+# Fichiers système
+.DS_Store
+Thumbs.db

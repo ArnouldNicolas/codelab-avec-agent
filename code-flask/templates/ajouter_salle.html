@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Ajouter une Salle{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="page-header">
+        <h2>➕ Ajouter une Nouvelle Salle</h2>
+        <div class="page-actions">
+            <a href="{{ url_for('liste_salles') }}" class="bouton bouton-secondaire">
+                ← Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('ajouter_salle') }}" class="form">
+        <div class="form-group">
+            <label for="nom">Nom de la salle <span class="required">*</span></label>
+            <input type="text" 
+                   id="nom" 
+                   name="nom" 
+                   placeholder="Ex: Amphi A, Salle B1, Salle de réunion" 
+                   required>
+            <span class="form-hint">Donnez un nom unique à votre salle.</span>
+        </div>
+
+        <div class="form-group">
+            <label for="capacite">Capacité <span class="required">*</span></label>
+            <input type="number" 
+                   id="capacite" 
+                   name="capacite" 
+                   placeholder="Ex: 50" 
+                   min="1" 
+                   step="1" 
+                   required>
+            <span class="form-hint">Nombre maximum de personnes que la salle peut accueillir.</span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="bouton bouton-primaire">
+                ✅ Ajouter la Salle
+            </button>
+            <a href="{{ url_for('liste_salles') }}" class="bouton bouton-annuler">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

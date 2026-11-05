@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Réservation de Salles{% endblock %} | Université</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <h1>🏢 Réservation de Salles</h1>
+            </div>
+            <nav class="main-nav">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span> Accueil
+                </a>
+                <a href="{{ url_for('liste_salles') }}" class="nav-link {% if request.path == '/salles' %}active{% endif %}">
+                    <span class="nav-icon">🏫</span> Salles
+                </a>
+                <a href="{{ url_for('liste_reservations') }}" class="nav-link {% if request.path == '/reservations' %}active{% endif %}">
+                    <span class="nav-icon">📅</span> Réservations
+                </a>
+                <a href="{{ url_for('formulaire_ajouter_reservation') }}" class="nav-link bouton-primaire">
+                    <span class="nav-icon">➕</span> Nouvelle Réservation
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Messages flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            <span class="flash-icon">{% if category == 'succes' %}✅{% elif category == 'erreur' %}❌{% else %}ℹ️{% endif %}</span>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>© 2026 - Université | Projet de Réservation de Salles</p>
+    </footer>
+
+    <!-- Scripts JavaScript -->
+    <script>
+        // Masquer les messages flash après 5 secondes
+        setTimeout(function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(msg) {
+                msg.style.opacity = '0';
+                setTimeout(function() { msg.remove(); }, 1000);
+            });
+        }, 5000);
+
+        // Limiter l'heure de fin en fonction de l'heure de début (max 4h)
+        const heureDebutInput = document.getElementById('heure_debut');
+        const heureFinInput = document.getElementById('heure_fin');
+        
+        if (heureDebutInput && heureFinInput) {
+            heureDebutInput.addEventListener('change', function() {
+                const debut = new Date(`1970-01-01T${this.value}`);
+                const maxFin = new Date(debut.getTime() + 4 * 60 * 60 * 1000); // +4h
+                const maxFinStr = maxFin.toISOString().substr(11, 5);
+                heureFinInput.max = maxFinStr;
+                
+                // Si l'heure de fin est déjà définie et > maxFin, la réinitialiser
+                if (heureFinInput.value > maxFinStr) {
+                    heureFinInput.value = maxFinStr;
+                }
+            });
+            
+            heureFinInput.addEventListener('change', function() {
+                if (this.value > '20:00') {
+                    this.value = '20:00';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
