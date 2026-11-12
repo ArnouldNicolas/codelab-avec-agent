@@ -83,6 +83,24 @@
                        required>
                 <span class="form-hint">Nombre de participants (doit être ≤ à la capacité de la salle).</span>
             </div>
+
+            <div class="form-group full-width">
+                <label for="repetition">Réservation répétée chaque semaine</label>
+                <input type="checkbox" 
+                       id="repetition" 
+                       name="repetition"
+                       onchange="toggleRepetitionFields()">
+                <span class="form-hint">Cochez pour créer une réservation qui se répète chaque semaine.</span>
+            </div>
+
+            <div class="form-group full-width" id="date_fin_repetition_group" style="display: none;">
+                <label for="date_fin_repetition">Date de fin de répétition <span class="required" id="repetition_required"></span></label>
+                <input type="date" 
+                       id="date_fin_repetition" 
+                       name="date_fin_repetition"
+                       min="{{ today|date('Y-m-d') }}">
+                <span class="form-hint">La réservation sera répétée chaque semaine jusqu'à cette date.</span>
+            </div>
         </div>
 
         <div class="form-actions">
@@ -103,7 +121,60 @@
             <li>Le nombre de participants ne doit pas dépasser la <strong>capacité de la salle</strong>.</li>
             <li>Deux réservations pour une même salle <strong>ne peuvent pas se chevaucher</strong>.</li>
             <li>Une réservation qui finit à 12h00 peut être suivie par une autre qui commence à 12h00.</li>
+            <li>Les réservations répétées bloquent la salle pour toutes les semaines jusqu'à la date de fin.</li>
         </ul>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Afficher/Masquer les champs de répétition
+function toggleRepetitionFields() {
+    const repetitionCheckbox = document.getElementById('repetition');
+    const dateFinRepetitionGroup = document.getElementById('date_fin_repetition_group');
+    const repetitionRequired = document.getElementById('repetition_required');
+    const dateFinInput = document.getElementById('date_fin_repetition');
+    
+    if (repetitionCheckbox && dateFinRepetitionGroup) {
+        if (repetitionCheckbox.checked) {
+            dateFinRepetitionGroup.style.display = 'block';
+            if (repetitionRequired) {
+                repetitionRequired.textContent = '*';
+            }
+            
+            // Définir une date par défaut (8 semaines après la date de début)
+            const dateInput = document.getElementById('date');
+            let startDateValue = dateInput.value;
+            
+            // Si aucune date sélectionnée, utiliser aujourd'hui
+            if (!startDateValue) {
+                const today = new Date();
+                startDateValue = today.toISOString().split('T')[0];
+                dateInput.value = startDateValue;
+            }
+            
+            const startDate = new Date(startDateValue);
+            const endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 56); // 8 semaines plus tard
+            if (!dateFinInput.value) {
+                dateFinInput.value = endDate.toISOString().split('T')[0];
+            }
+            dateFinInput.required = true;
+        } else {
+            dateFinRepetitionGroup.style.display = 'none';
+            if (repetitionRequired) {
+                repetitionRequired.textContent = '';
+            }
+            document.getElementById('date_fin_repetition').required = false;
+        }
+    }
+}
+
+// Initialiser au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    toggleRepetitionFields();
+});
+</script>
 {% endblock %}

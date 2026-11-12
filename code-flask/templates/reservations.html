@@ -24,6 +24,7 @@
                     <th>Heure</th>
                     <th>Responsable</th>
                     <th>Participants</th>
+                    <th>Répétition</th>
                     <th class="actions-col">Actions</th>
                 </tr>
             </thead>
@@ -37,20 +38,50 @@
                             <span class="salle-capacite">({{ reservation.salle_capacite }})</span>
                         </div>
                     </td>
-                    <td>{{ reservation.date }}</td>
+                    <td>{{ reservation.date|date }}</td>
                     <td>{{ reservation.heure_debut }} - {{ reservation.heure_fin }}</td>
                     <td>{{ reservation.nom }}</td>
                     <td>{{ reservation.participants }}</td>
+                    <td>
+                        {% if reservation.repetition %}
+                        <span class="repetition-badge" title="Réservation répétée jusqu'au {{ reservation.date_fin_repetition|date if reservation.date_fin_repetition else 'N/A' }}">
+                            ✅ Oui
+                            {% if reservation.reservation_mere_id is none %}
+                            <span class="mere-badge" title="Réservation mère">(Mère)</span>
+                            {% else %}
+                            <span class="occurrence-badge" title="Occurrence de la réservation {{ reservation.reservation_mere_id }}">(Occurrence)</span>
+                            {% endif %}
+                        </span>
+                        {% else %}
+                        <span class="non-repetition">❌ Non</span>
+                        {% endif %}
+                    </td>
                     <td class="actions-col">
                         <div class="action-buttons">
-                            <a href="{{ url_for('modifier_reservation', reservation_id=reservation.id) }}" 
-                               class="bouton bouton-small bouton-secondaire" 
+                            <a href="{{ url_for('modifier_reservation', reservation_id=reservation.id) }}"
+                               class="bouton bouton-small bouton-secondaire"
                                title="Modifier">
                                 ✏️
                             </a>
-                            <form action="{{ url_for('supprimer_reservation', reservation_id=reservation.id) }}" 
-                                  method="POST" 
-                                  onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer la réservation \"{{ reservation.nom }}\" ?');">
+                            {% if reservation.repetition %}
+                                {% if reservation.reservation_mere_id is none %}
+                                <form action="{{ url_for('supprimer_repetition', reservation_id=reservation.id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les occurrences futures de la réservation \" {{ reservation.nom }} \" ?');">
+                                    <button type="submit" class="bouton bouton-small bouton-warning" title="Supprimer la répétition">
+                                        🔄
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            <form action="{{ url_for('supprimer_reservation', reservation_id=reservation.id) }}"
+                                  method="POST"
+                                  {% if reservation.repetition and reservation.reservation_mere_id is none %}
+                                  onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer UNIQUEMENT cette occurrence de \" {{ reservation.nom }} \" ?\n\nCochez \"Supprimer toutes\" pour supprimer toute la série.');">
+                                  <input type="hidden" name="supprimer_toutes" value="off">
+                                  {% else %}
+                                  onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer la réservation \" {{ reservation.nom }} \" ?');">
+                                  {% endif %}
                                 <button type="submit" class="bouton bouton-small bouton-danger" title="Supprimer">
                                     🗑️
                                 </button>
