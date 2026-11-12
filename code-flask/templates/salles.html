@@ -21,6 +21,8 @@
                     <th>ID</th>
                     <th>Nom</th>
                     <th>Capacité</th>
+                    <th>Responsable</th>
+                    <th>Type de local</th>
                     <th class="actions-col">Actions</th>
                 </tr>
             </thead>
@@ -30,8 +32,15 @@
                     <td>{{ salle.id }}</td>
                     <td>{{ salle.nom }}</td>
                     <td>{{ salle.capacite }}</td>
+                    <td>{{ salle.responsable if salle.responsable else '-' }}</td>
+                    <td>{{ salle.type_de_local}}</td>
                     <td class="actions-col">
                         <div class="action-buttons">
+                            <a href="{{ url_for('planning_salle', salle_id=salle.id) }}" 
+                               class="bouton bouton-small bouton-info" 
+                               title="Voir le planning">
+                                📅
+                            </a>
                             <a href="{{ url_for('modifier_salle', salle_id=salle.id) }}" 
                                class="bouton bouton-small bouton-secondaire" 
                                title="Modifier">

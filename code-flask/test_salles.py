@@ -82,7 +82,7 @@ class TestSalles:
         cursor = conn.cursor()
         
         # Ajouter une salle
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle Test', 30)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle Test', 30, 'Salle de réunion')")
         conn.commit()
         
         # Vérifier que la salle a été ajoutée
@@ -92,6 +92,7 @@ class TestSalles:
         assert salle is not None
         assert salle['nom'] == 'Salle Test'
         assert salle['capacite'] == 30
+        assert salle['type_de_local'] == 'Salle de réunion'
 
     def test_ajouter_salle_capacite_nulle(self, setup_db):
         """Test : Impossible d'ajouter une salle avec capacité <= 0."""
@@ -101,7 +102,7 @@ class TestSalles:
         # Essayer d'ajouter une salle avec capacité = 0
         # SQLite a un CHECK dans base.sql qui bloque capacite <= 0
         try:
-            cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle Invalide', 0)")
+            cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle Invalide', 0, 'Salle de réunion')")
             conn.commit()
             assert False, "Devrait avoir échoué à cause de la contrainte CHECK"
         except sqlite3.IntegrityError:
@@ -114,12 +115,12 @@ class TestSalles:
         cursor = conn.cursor()
         
         # Ajouter une première salle
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle Unique', 20)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle Unique', 20, 'Salle de réunion')")
         conn.commit()
         
         # Essayer d'ajouter une deuxième salle avec le même nom
         try:
-            cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle Unique', 30)")
+            cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle Unique', 30, 'Salle de réunion')")
             conn.commit()
             assert False, "Devrait avoir échoué à cause de la contrainte UNIQUE"
         except sqlite3.IntegrityError:
@@ -132,7 +133,7 @@ class TestSalles:
         cursor = conn.cursor()
         
         # Ajouter une salle
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle à supprimer', 20)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle à supprimer', 20, 'Salle de réunion')")
         salle_id = cursor.lastrowid
         conn.commit()
         
@@ -184,7 +185,7 @@ class TestSalles:
         cursor = conn.cursor()
         
         # Ajouter une salle
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle à modifier', 20)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle à modifier', 20, 'Salle de réunion')")
         salle_id = cursor.lastrowid
         conn.commit()
         
@@ -206,9 +207,9 @@ class TestSalles:
         cursor = conn.cursor()
         
         # Ajouter des salles
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Z Salles', 10)")
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('A Salles', 20)")
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('M Salles', 15)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Z Salles', 10, 'Salle de réunion')")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('A Salles', 20, 'Salle de réunion')")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('M Salles', 15, 'Salle de réunion')")
         conn.commit()
         
         # Lister les salles triées par nom
@@ -232,8 +233,8 @@ class TestReglesMetierSalles:
         cursor = conn.cursor()
         
         # Ajouter des salles avec capacité positive
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle A', 10)")
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle B', 20)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle A', 10, 'Salle de réunion')")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle B', 20, 'Salle de réunion')")
         conn.commit()
         
         # Récupérer toutes les salles
@@ -250,8 +251,8 @@ class TestReglesMetierSalles:
         cursor = conn.cursor()
         
         # Ajouter des salles avec des noms uniques
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle A', 10)")
-        cursor.execute("INSERT INTO salles (nom, capacite) VALUES ('Salle B', 20)")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle A', 10, 'Salle de réunion')")
+        cursor.execute("INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle B', 20, 'Salle de réunion')")
         conn.commit()
         
         # Récupérer tous les noms

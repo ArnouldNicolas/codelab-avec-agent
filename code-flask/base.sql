@@ -5,7 +5,9 @@
 CREATE TABLE IF NOT EXISTS salles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nom TEXT NOT NULL UNIQUE,
-    capacite INTEGER NOT NULL CHECK (capacite > 0)
+    capacite INTEGER NOT NULL CHECK (capacite > 0),
+    responsable TEXT DEFAULT NULL,
+    type_de_local TEXT NOT NULL
 );
 
 -- Table des réservations
@@ -24,12 +26,12 @@ CREATE TABLE IF NOT EXISTS reservations (
 );
 
 -- Exemples de salles
-INSERT INTO salles (nom, capacite) VALUES ('Amphi A', 100);
-INSERT INTO salles (nom, capacite) VALUES ('Amphi B', 80);
-INSERT INTO salles (nom, capacite) VALUES ('Salle C1', 30);
-INSERT INTO salles (nom, capacite) VALUES ('Salle C2', 25);
-INSERT INTO salles (nom, capacite) VALUES ('Salle D1', 20);
-INSERT INTO salles (nom, capacite) VALUES ('Salle D2', 15);
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Amphi A', 100, 'Amphi');
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Amphi B', 80, 'Amphi');
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle C1', 30, 'Salle de réunion');
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle C2', 25, 'Salle de réunion');
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle D1', 20, 'TD');
+INSERT INTO salles (nom, capacite, type_de_local) VALUES ('Salle D2', 15, 'TD');
 
 -- Exemples de réservations
 INSERT INTO reservations (salle_id, date, heure_debut, heure_fin, nom, participants) 
