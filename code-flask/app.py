@@ -15,21 +15,17 @@ app.secret_key = 'ta_cle_secrete_ici_change_la_en_production'  # À changer en p
 # Ajouter le filtre date pour Jinja2
 @app.template_filter('date')
 def date_filter(value, format='%Y-%m-%d'):
-    """Filtre Jinja2 pour formater les dates."""
-    if value is None:
+    """Filtre Jinja2 pour formater les dates (objet date/datetime ou chaîne ISO de SQLite)."""
+    if value is None or value == '':
         return ''
-    # Si value est une chaîne (format ISO de SQLite), la convertir en objet date
     if isinstance(value, str):
         try:
-            from datetime import date, datetime
-            # Essayer de parser comme date ISO
-            date_obj = date.fromisoformat(value)
-            return date_obj.strftime(format)
-        except (ValueError, AttributeError):
-            # Si ce n'est pas une date ISO valide, retourner la chaîne telle quelle
+            return date.fromisoformat(value[:10]).strftime(format)
+        except ValueError:
             return value
-    # Si c'est déjà un objet date ou datetime
-    return value.strftime(format)
+    if hasattr(value, 'strftime'):
+        return value.strftime(format)
+    return str(value)
 
 # Configuration de la base de données
 DATABASE = os.path.join(os.path.dirname(__file__), 'data.db')
@@ -135,22 +131,19 @@ def a_conflit(salle_id, date_obj, heure_debut, heure_fin, reservation_id_exclure
     heure_debut_str = heure_debut.isoformat()
     heure_fin_str = heure_fin.isoformat()
     
+    # Chevauchement strict : finir à 12 h et commencer à 12 h est autorisé
+    requete = """
+        SELECT id FROM reservations
+        WHERE salle_id = ? AND date = ? AND heure_debut < ? AND heure_fin > ?
+    """
+    params = [salle_id, date_iso, heure_fin_str, heure_debut_str]
     if reservation_id_exclure:
-        cursor.execute("""
-            SELECT id FROM reservations 
-            WHERE salle_id = ? AND date = ? AND id != ? AND (
-                (heure_debut <= ? AND heure_fin > ?) OR 
-                (heure_debut < ? AND heure_fin >= ?)
-            )
-        """, (salle_id, date_iso, reservation_id_exclure, heure_debut_str, heure_debut_str, heure_fin_str, heure_fin_str))
-    else:
-        cursor.execute("""
-            SELECT id FROM reservations 
-            WHERE salle_id = ? AND date = ? AND (
-                (heure_debut <= ? AND heure_fin > ?) OR 
-                (heure_debut < ? AND heure_fin >= ?)
-            )
-        """, (salle_id, date_iso, heure_debut_str, heure_debut_str, heure_fin_str, heure_fin_str))
+        # Accepte un identifiant ou une liste d'identifiants (toute une série)
+        if isinstance(reservation_id_exclure, int):
+            reservation_id_exclure = [reservation_id_exclure]
+        requete += " AND id NOT IN (%s)" % ",".join("?" * len(reservation_id_exclure))
+        params += list(reservation_id_exclure)
+    cursor.execute(requete, params)
     
     conflit = cursor.fetchone() is not None
     close_db(conn)
@@ -304,6 +297,18 @@ def get_reservation_mere_id(reservation_id):
         close_db(conn)
 
 
+def ids_serie(reservation_id):
+    """Retourne les identifiants de toute la série (mère + filles) à laquelle appartient la réservation."""
+    mere_id = get_reservation_mere_id(reservation_id) or reservation_id
+    conn = get_db()
+    try:
+        lignes = conn.execute("SELECT id FROM reservations WHERE id = ? OR reservation_mere_id = ?",
+                              (mere_id, mere_id)).fetchall()
+        return [l[0] for l in lignes]
+    finally:
+        close_db(conn)
+
+
 def est_reservation_mere(reservation_id):
     """
     Vérifie si une réservation est une réservation mère (a des enfants).
@@ -430,7 +435,7 @@ def modifier_salle(salle_id):
         nom = request.form.get('nom', salle['nom']).strip()
         capacite = request.form.get('capacite', salle['capacite'])
         responsable = request.form.get('responsable', salle['responsable'] if salle['responsable'] else '').strip()
-        type_de_local=request.form.get('type_de_local',salle['type_de_local']).strip()
+        type_de_local = (request.form.get('type_de_local') or salle['type_de_local'] or '').strip()
 
         
         # Validation
@@ -450,6 +455,15 @@ def modifier_salle(salle_id):
         cursor.execute("SELECT id FROM salles WHERE nom = ? AND id != ?", (nom, salle_id))
         if cursor.fetchone():
             flash(f"Une salle nommé '{nom}' existe déjà.", 'erreur')
+            return render_template('modifier_salle.html', salle=salle)
+        
+        # Une baisse de capacité ne doit pas rendre invalide une réservation à venir (séries incluses)
+        cursor.execute("SELECT COUNT(*), MIN(date) FROM reservations WHERE salle_id = ? AND participants > ? AND date >= ?",
+                       (salle_id, capacite, date.today().isoformat()))
+        nb_trop_grandes, premiere_date = cursor.fetchone()
+        if nb_trop_grandes:
+            flash(f"Capacité trop faible : {nb_trop_grandes} réservation(s) à venir dépassent {capacite} participants "
+                  f"(la première le {premiere_date}).", 'erreur')
             return render_template('modifier_salle.html', salle=salle)
         
         # Modifier la salle
@@ -661,7 +675,7 @@ def ajouter_reservation():
             cursor.execute("""
                 INSERT INTO reservations (salle_id, date, heure_debut, heure_fin, nom, participants, repetition, date_fin_repetition, reservation_mere_id)
                 VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL)
-            """, (salle_id, date_iso, heure_debut_str, heure_fin_str, nom, participants, False, None, None))
+            """, (salle_id, date_iso, heure_debut_str, heure_fin_str, nom, participants, False))
             flash("Réservation ajoutée avec succès !", 'succes')
         
         conn.commit()
@@ -885,7 +899,7 @@ def modifier_reservation(reservation_id):
             # Vérifier les conflits pour toutes les dates de la répétition
             a_conflit_flag, date_conflit = a_conflit_avec_repetition(
                 nouvelle_salle_id, nouvelle_date_obj, nouvelle_heure_debut, nouvelle_heure_fin, 
-                nouvelle_date_fin_repetition, reservation_id
+                nouvelle_date_fin_repetition, ids_serie(reservation_id)
             )
             if a_conflit_flag:
                 flash(f"La salle est déjà réservée à cet horaire le {date_conflit}.", 'erreur')
