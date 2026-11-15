@@ -150,6 +150,41 @@ def a_conflit(salle_id, date_obj, heure_debut, heure_fin, reservation_id_exclure
     return conflit
 
 
+def a_conflit_personne(nom, date_obj, heure_debut, heure_fin, reservation_id_exclure=None):
+    """Vrai si la personne (nom, sans tenir compte de la casse) a déjà une réservation qui chevauche, dans n'importe quelle salle."""
+    if isinstance(date_obj, str):
+        date_obj = date.fromisoformat(date_obj)
+    if isinstance(heure_debut, str):
+        heure_debut = datetime.strptime(heure_debut, "%H:%M").time()
+    if isinstance(heure_fin, str):
+        heure_fin = datetime.strptime(heure_fin, "%H:%M").time()
+    requete = """
+        SELECT id FROM reservations
+        WHERE LOWER(TRIM(nom)) = LOWER(TRIM(?)) AND date = ? AND heure_debut < ? AND heure_fin > ?
+    """
+    params = [nom, date_obj.isoformat(), heure_fin.isoformat(), heure_debut.isoformat()]
+    if reservation_id_exclure:
+        if isinstance(reservation_id_exclure, int):
+            reservation_id_exclure = [reservation_id_exclure]
+        requete += " AND id NOT IN (%s)" % ",".join("?" * len(reservation_id_exclure))
+        params += list(reservation_id_exclure)
+    conn = get_db()
+    try:
+        return conn.execute(requete, params).fetchone() is not None
+    finally:
+        close_db(conn)
+
+
+def a_conflit_personne_avec_repetition(nom, date_debut, heure_debut, heure_fin, date_fin_repetition, reservation_id_exclure=None):
+    """Comme a_conflit_avec_repetition, mais pour la personne. Retourne (conflit, date_du_conflit)."""
+    if isinstance(date_debut, str):
+        date_debut = date.fromisoformat(date_debut)
+    for jour in generer_occurrences_repetition(date_debut, date_fin_repetition):
+        if a_conflit_personne(nom, jour, heure_debut, heure_fin, reservation_id_exclure):
+            return True, jour
+    return False, None
+
+
 def a_conflit_avec_repetition(salle_id, date_debut, heure_debut, heure_fin, date_fin_repetition, reservation_id_exclure=None):
     """
     Vérifie s'il y a un conflit pour une série de réservations répétées.
@@ -228,54 +263,23 @@ def supprimer_toutes_occurrences(reservation_id):
         close_db(conn)
 
 
-def supprimer_occurrences_futures(reservation_id, date_aujourdhui=None):
+def supprimer_occurrences(reservation_id):
     """
-    Supprime toutes les occurrences futures d'une réservation répétée (y compris la réservation elle-même si elle est dans le futur).
-    Conserve les occurrences passées.
+    Supprime toutes les occurrences (réservations filles, passées et à venir) d'une série répétée.
+    La réservation mère est conservée comme réservation simple. Retourne le nombre de réservations supprimées.
     """
-    if date_aujourdhui is None:
-        date_aujourdhui = date.today()
-    
+    mere_id = get_reservation_mere_id(reservation_id) or reservation_id
     conn = get_db()
-    cursor = conn.cursor()
-    
     try:
-        # Trouver la réservation mère
-        cursor.execute("SELECT reservation_mere_id FROM reservations WHERE id = ?", (reservation_id,))
-        mere_id = cursor.fetchone()[0]
-        if mere_id:
-            reservation_id = mere_id
-        
-        # Trouver toutes les réservations filles (y compris la mère)
-        cursor.execute("""
-            WITH RECURSIVE reservation_tree AS (
-                SELECT id, date FROM reservations WHERE id = ?
-                UNION ALL
-                SELECT r.id, r.date FROM reservations r
-                JOIN reservation_tree rt ON r.reservation_mere_id = rt.id
-            )
-            SELECT id, date FROM reservation_tree
-        """, (reservation_id,))
-        
-        reservations = cursor.fetchall()
-        
-        # Supprimer les occurrences futures
-        deleted_count = 0
-        for rid, res_date in reservations:
-            # res_date peut être une chaîne (de SQLite) ou un objet date
-            if isinstance(res_date, str):
-                res_date_obj = date.fromisoformat(res_date)
-            else:
-                res_date_obj = res_date
-            if res_date_obj >= date_aujourdhui:
-                cursor.execute("DELETE FROM reservations WHERE id = ?", (rid,))
-                deleted_count += 1
-        
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM reservations WHERE reservation_mere_id = ?", (mere_id,))
+        supprimees = cursor.rowcount
+        cursor.execute("UPDATE reservations SET repetition = 0, date_fin_repetition = NULL WHERE id = ?", (mere_id,))
         conn.commit()
-        return deleted_count
-    except Exception as e:
+        return supprimees
+    except Exception:
         conn.rollback()
-        raise e
+        raise
     finally:
         close_db(conn)
 
@@ -644,6 +648,16 @@ def ajouter_reservation():
             flash("La salle est déjà réservée à cet horaire.", 'erreur')
             close_db(conn)
             return redirect(url_for('formulaire_ajouter_reservation'))
+
+    # 3 bis. Une personne ne peut pas avoir deux réservations qui se chevauchent
+    if repetition:
+        conflit_p, date_p = a_conflit_personne_avec_repetition(nom, date_obj, heure_debut, heure_fin, date_fin_repetition)
+    else:
+        conflit_p, date_p = a_conflit_personne(nom, date_obj, heure_debut, heure_fin), date_obj
+    if conflit_p:
+        flash(f"{nom} a déjà une réservation qui chevauche ce créneau le {date_p}.", 'erreur')
+        close_db(conn)
+        return redirect(url_for('formulaire_ajouter_reservation'))
     
     # 4. Ajouter la/les réservation(s)
     try:
@@ -763,8 +777,9 @@ def supprimer_repetition(reservation_id):
     
     try:
         # Supprimer toutes les occurrences futures
-        count = supprimer_occurrences_futures(target_id)
-        flash(f"{count} occurrence(s) future(s) de la réservation '{nom}' supprimée(s) avec succès !", 'succes')
+        count = supprimer_occurrences(target_id)
+        flash(f"{count} occurrence(s) de la réservation '{nom}' supprimée(s) avec succès ! "
+              "La première réservation est conservée.", 'succes')
     except Exception as e:
         flash(f"Erreur : {e}", 'erreur')
     finally:
@@ -913,6 +928,21 @@ def modifier_reservation(reservation_id):
                 return render_template('modifier_reservation.html', 
                                        reservation=reservation, salles=salles)
         
+        # 3 bis. Une personne ne peut pas avoir deux réservations qui se chevauchent
+        if nouvelle_repetition and (not is_occurrence or modifier_toutes):
+            conflit_p, date_p = a_conflit_personne_avec_repetition(
+                nouveau_nom, nouvelle_date_obj, nouvelle_heure_debut, nouvelle_heure_fin,
+                nouvelle_date_fin_repetition, ids_serie(reservation_id))
+        else:
+            exclure = ids_serie(reservation_id) if (is_occurrence and modifier_toutes) else reservation_id
+            conflit_p = a_conflit_personne(nouveau_nom, nouvelle_date_obj, nouvelle_heure_debut,
+                                           nouvelle_heure_fin, exclure)
+            date_p = nouvelle_date_obj
+        if conflit_p:
+            flash(f"{nouveau_nom} a déjà une réservation qui chevauche ce créneau le {date_p}.", 'erreur')
+            return render_template('modifier_reservation.html',
+                                   reservation=reservation, salles=salles, est_occurrence=is_occurrence)
+
         # 4. Modifier la/les réservation(s)
         try:
             # Convertir date_obj et time en chaînes ISO pour SQLite
@@ -935,7 +965,18 @@ def modifier_reservation(reservation_id):
             elif is_occurrence and modifier_toutes:
                 # Trouver la mère et modifier toutes les occurrences
                 mere_id = get_reservation_mere_id(reservation_id)
-                if mere_id:
+                if mere_id and not nouvelle_repetition:
+                    # Désactivation de la répétition : on ne garde que la réservation mère
+                    cursor.execute("DELETE FROM reservations WHERE reservation_mere_id = ?", (mere_id,))
+                    cursor.execute("""
+                        UPDATE reservations 
+                        SET salle_id = ?, heure_debut = ?, heure_fin = ?, nom = ?, 
+                            participants = ?, repetition = 0, date_fin_repetition = NULL
+                        WHERE id = ?
+                    """, (nouvelle_salle_id, nouvelle_heure_debut_str, nouvelle_heure_fin_str,
+                          nouveau_nom, nouveaux_participants, mere_id))
+                    flash("Répétition désactivée : seule la première réservation de la série est conservée.", 'succes')
+                elif mere_id:
                     # Mettre à jour la mère
                     cursor.execute("""
                         UPDATE reservations 
@@ -1155,6 +1196,8 @@ def api_ajouter_reservation():
         
         if a_conflit(salle_id, date_obj, heure_debut, heure_fin):
             return jsonify({"error": "La salle est déjà réservée à cet horaire"}), 409
+        if a_conflit_personne(nom, date_obj, heure_debut, heure_fin):
+            return jsonify({"error": "Cette personne a déjà une réservation qui chevauche ce créneau"}), 409
         
         # Convertir date_obj et time en chaînes ISO pour SQLite
         date_iso = date_obj.isoformat()
@@ -1239,6 +1282,11 @@ def reserver():
         # Vérifier les conflits
         if a_conflit(salle_id, date_obj, heure_debut, heure_fin):
             flash("Réservation refusée : chevauchement avec une autre réservation.", 'erreur')
+            close_db(conn)
+            return redirect(url_for('formulaire_ajouter_reservation'))
+
+        if a_conflit_personne(nom, date_obj, heure_debut, heure_fin):
+            flash("Réservation refusée : cette personne a déjà une réservation qui chevauche ce créneau.", 'erreur')
             close_db(conn)
             return redirect(url_for('formulaire_ajouter_reservation'))
         

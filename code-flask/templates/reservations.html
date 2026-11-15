@@ -67,7 +67,7 @@
                                 {% if reservation.reservation_mere_id is none %}
                                 <form action="{{ url_for('supprimer_repetition', reservation_id=reservation.id) }}"
                                       method="POST"
-                                      onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les occurrences futures de la réservation \" {{ reservation.nom }} \" ?');">
+                                      onsubmit="return confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les occurrences de la réservation \" {{ reservation.nom }} \" ?');">
                                     <button type="submit" class="bouton bouton-small bouton-warning" title="Supprimer la répétition">
                                         🔄
                                     </button>
