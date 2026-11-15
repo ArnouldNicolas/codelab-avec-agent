@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS salles (
     nom TEXT NOT NULL UNIQUE,
     capacite INTEGER NOT NULL CHECK (capacite > 0),
     responsable TEXT DEFAULT NULL,
-    type_de_local TEXT NOT NULL
+    type_de_local TEXT DEFAULT NULL
 );
 
 -- Table des réservations
@@ -19,10 +19,16 @@ CREATE TABLE IF NOT EXISTS reservations (
     heure_fin TIME NOT NULL,
     nom TEXT NOT NULL,
     participants INTEGER NOT NULL CHECK (participants > 0),
+    repetition BOOLEAN DEFAULT FALSE,
+    date_fin_repetition DATE DEFAULT NULL,
+    reservation_mere_id INTEGER DEFAULT NULL,
     FOREIGN KEY (salle_id) REFERENCES salles(id) ON DELETE CASCADE,
+    FOREIGN KEY (reservation_mere_id) REFERENCES reservations(id) ON DELETE CASCADE,
     CHECK (heure_debut >= '08:00' AND heure_debut <= '20:00'),
     CHECK (heure_fin >= '08:00' AND heure_fin <= '20:00'),
-    CHECK (heure_fin > heure_debut)
+    CHECK (heure_fin > heure_debut),
+    CHECK (repetition = 0 OR (date_fin_repetition IS NOT NULL AND date_fin_repetition >= date)),
+    CHECK (reservation_mere_id IS NULL OR reservation_mere_id != id)
 );
 
 -- Exemples de salles

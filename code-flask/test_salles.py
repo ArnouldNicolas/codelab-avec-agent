@@ -28,29 +28,13 @@ def setup_db():
     cursor = conn.cursor()
     
     # Charger le schéma
-    cursor.executescript("""
-        -- Table des salles
-        CREATE TABLE IF NOT EXISTS salles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nom TEXT NOT NULL UNIQUE,
-            capacite INTEGER NOT NULL CHECK (capacite > 0)
-        );
-
-        -- Table des réservations
-        CREATE TABLE IF NOT EXISTS reservations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            salle_id INTEGER NOT NULL,
-            date DATE NOT NULL,
-            heure_debut TIME NOT NULL,
-            heure_fin TIME NOT NULL,
-            nom TEXT NOT NULL,
-            participants INTEGER NOT NULL CHECK (participants > 0),
-            FOREIGN KEY (salle_id) REFERENCES salles(id) ON DELETE CASCADE,
-            CHECK (heure_debut >= '08:00' AND heure_debut <= '20:00'),
-            CHECK (heure_fin >= '08:00' AND heure_fin <= '20:00'),
-            CHECK (heure_fin > heure_debut)
-        );
-    """)
+    with open('base.sql', 'r', encoding='utf-8') as f:
+        cursor.executescript(f.read())
+    cursor.execute("PRAGMA foreign_keys = ON")
+    # Repartir sans les données d'exemple
+    cursor.execute("DELETE FROM reservations")
+    cursor.execute("DELETE FROM salles")
+    conn.commit()
     
     # Activer les foreign keys
     cursor.execute("PRAGMA foreign_keys = ON")
