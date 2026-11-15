@@ -1,3 +1,7 @@
+Le but de ce projet est de s'initier à l'utilisation d'agents IA pour le Vibe Coding.
+
+
+
 # Réservation de salles
 
 > **Permettre à chacun de réserver une salle du bâtiment, sans conflit et dans la limite de sa capacité.**
